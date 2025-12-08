@@ -9,3 +9,5 @@ api/package-lock.json
 web/package-lock.json
 api/node_modules
 web/node_modules
+.cursor/
+.specify/
