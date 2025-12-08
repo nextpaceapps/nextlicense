@@ -1,0 +1,36 @@
+{
+    "hosting": {
+        "public": "web/dist",
+        "ignore": [
+            "firebase.json",
+            "**/.*",
+            "**/node_modules/**"
+        ],
+        "rewrites": [
+            {
+                "source": "/api/**",
+                "run": {
+                    "serviceId": "licenses-web",
+                    "region": "europe-west4"
+                }
+            },
+            {
+                "source": "**",
+                "destination": "/index.html"
+            }
+        ]
+    },
+    "apphosting": {
+        "backendId": "licenses-web",
+        "rootDir": "api",
+        "ignore": [
+            "node_modules",
+            ".git",
+            "firebase-debug.log",
+            "firebase-debug.*.log",
+            "*.md",
+            ".env",
+            ".env.local"
+        ]
+    }
+}

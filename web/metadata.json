@@ -1,0 +1,5 @@
+{
+  "name": "Licensing Manager UI",
+  "description": "A comprehensive dashboard for managing software products, plans, and licenses. Includes a simulation engine to test license validation logic client-side.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,13 @@
+{
+    "name": "nextlicense-monorepo",
+    "version": "1.0.0",
+    "description": "Monorepo for license-ui and license-api",
+    "scripts": {
+        "install:all": "npm install --prefix web && npm install --prefix api",
+        "build:web": "npm run build --prefix web",
+        "build:api": "npm run build --prefix api",
+        "deploy": "firebase deploy"
+    },
+    "author": "",
+    "license": "ISC"
+}
