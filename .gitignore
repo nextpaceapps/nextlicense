@@ -5,3 +5,7 @@ node_modules
 .firebase
 firebase-debug.log*
 firebase-debug.*.log
+api/package-lock.json
+web/package-lock.json
+api/node_modules
+web/node_modules
