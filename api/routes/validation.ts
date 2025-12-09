@@ -84,7 +84,8 @@ export async function validationRoutes(fastify: FastifyInstance, options: Fastif
       let updatedActivations = [...license.activations];
 
       if (existingDeviceIndex === -1) {
-        if (license.activations.length >= plan.deviceLimit) {
+        // Only check device limit for time-based plans
+        if (plan.deviceLimit !== undefined && license.activations.length >= plan.deviceLimit) {
           await getService().createLog({
             type: 'VALIDATE',
             details: `Device limit reached for ${body.key}`,

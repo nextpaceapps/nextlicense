@@ -123,6 +123,19 @@ export const api = {
         method: 'POST',
       });
     },
+    topup: async (id: string, amount: number): Promise<{
+      success: boolean;
+      license: {
+        id: string;
+        currentUsageCount: number;
+        totalUsageCount: number;
+      };
+    }> => {
+      return fetchApi(`/api/licenses/${id}/topup`, {
+        method: 'POST',
+        body: JSON.stringify({ amount }),
+      });
+    },
   },
   logs: {
     getAll: async (limit?: number): Promise<LogEvent[]> => {
