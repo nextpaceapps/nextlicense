@@ -17,6 +17,7 @@ export const Licenses: React.FC = () => {
 
   const [issueForm, setIssueForm] = useState({ productId: '', planId: '', userEmail: '' });
   const [searchTerm, setSearchTerm] = useState('');
+  const [topupModal, setTopupModal] = useState<{ license: License; amount: number } | null>(null);
 
   const loadData = async () => {
     try {
@@ -72,6 +73,29 @@ export const Licenses: React.FC = () => {
       await loadData();
       const updated = await api.licenses.getAll();
       if(detailsModal) setDetailsModal(updated.find(l => l.id === id) || null);
+    }
+  };
+
+  const handleTopup = async () => {
+    if (!topupModal || topupModal.amount <= 0 || !Number.isInteger(topupModal.amount)) {
+      alert('Please enter a valid positive integer for the topup amount');
+      return;
+    }
+    setLoading(true);
+    try {
+      await api.licenses.topup(topupModal.license.id, topupModal.amount);
+      setTopupModal(null);
+      await loadData();
+      // Refresh details modal if open
+      if (detailsModal && detailsModal.id === topupModal.license.id) {
+        const updated = await api.licenses.getAll();
+        setDetailsModal(updated.find(l => l.id === topupModal.license.id) || null);
+      }
+    } catch (error) {
+      console.error('Error topping up license:', error);
+      alert('Failed to topup license');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -157,11 +181,23 @@ export const Licenses: React.FC = () => {
                     {license.userEmail}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
-                    <div>Iss: {new Date(license.issuedAt).toLocaleDateString()}</div>
-                    <div>Exp: {new Date(license.expiresAt).toLocaleDateString()}</div>
+                    {license.currentUsageCount !== undefined ? (
+                      <div className="text-blue-600 font-medium">
+                        <div>Usages: {license.currentUsageCount.toLocaleString()} / {license.totalUsageCount?.toLocaleString() || '-'}</div>
+                      </div>
+                    ) : (
+                      <>
+                        <div>Iss: {new Date(license.issuedAt).toLocaleDateString()}</div>
+                        <div>Exp: {new Date(license.expiresAt).toLocaleDateString()}</div>
+                      </>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {license.activations.length} / {plan?.deviceLimit || '-'}
+                    {license.currentUsageCount === undefined ? (
+                      <>{license.activations.length} / {plan?.deviceLimit || '-'}</>
+                    ) : (
+                      <span className="text-xs text-gray-400">N/A</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button onClick={() => setDetailsModal(license)} className="text-primary hover:text-indigo-900">Details</button>
@@ -199,6 +235,18 @@ export const Licenses: React.FC = () => {
                         {products.find(p => p.id === detailsModal.productId)?.name} ({plans.find(p => p.id === detailsModal.planId)?.name})
                     </span>
                  </div>
+                 {detailsModal.currentUsageCount !== undefined && (
+                   <>
+                     <div className="p-3 bg-blue-50 rounded">
+                        <span className="text-xs text-gray-500 block">Current Usages</span>
+                        <span className="font-semibold text-blue-800 text-lg">{detailsModal.currentUsageCount.toLocaleString()}</span>
+                     </div>
+                     <div className="p-3 bg-blue-50 rounded">
+                        <span className="text-xs text-gray-500 block">Total Usages</span>
+                        <span className="font-semibold text-blue-800 text-lg">{detailsModal.totalUsageCount?.toLocaleString() || '-'}</span>
+                     </div>
+                   </>
+                 )}
                </div>
                
                <div className="mb-6">
@@ -216,6 +264,14 @@ export const Licenses: React.FC = () => {
                </div>
 
                <div className="flex gap-3 mt-4">
+                  {detailsModal.currentUsageCount !== undefined && detailsModal.status === LicenseStatus.ACTIVE && (
+                    <button 
+                      onClick={() => setTopupModal({ license: detailsModal, amount: 100 })}
+                      className="flex-1 bg-green-50 text-green-600 py-2 rounded-lg font-medium hover:bg-green-100 flex items-center justify-center"
+                    >
+                      <Plus className="w-4 h-4 mr-2"/> Topup Usages
+                    </button>
+                  )}
                   <button 
                     onClick={() => handleRenew(detailsModal.id)}
                     className="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg font-medium hover:bg-blue-100 flex items-center justify-center"
@@ -231,6 +287,56 @@ export const Licenses: React.FC = () => {
                     </button>
                   )}
                </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Topup Modal */}
+      {topupModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-xl font-bold mb-4">Topup License Usages</h2>
+            <div className="space-y-4">
+              <div className="p-3 bg-gray-50 rounded">
+                <div className="text-sm text-gray-500">License Key</div>
+                <div className="font-mono font-bold text-gray-800">{topupModal.license.key}</div>
+              </div>
+              <div className="p-3 bg-blue-50 rounded">
+                <div className="text-sm text-gray-500">Current Usages</div>
+                <div className="text-lg font-bold text-blue-800">
+                  {topupModal.license.currentUsageCount?.toLocaleString() || 0} / {topupModal.license.totalUsageCount?.toLocaleString() || 0}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount to Add</label>
+                <input 
+                  type="number" 
+                  required 
+                  min="1" 
+                  className="w-full border border-gray-300 rounded-lg p-2" 
+                  value={topupModal.amount || ''} 
+                  onChange={e => setTopupModal({...topupModal, amount: Number(e.target.value)})} 
+                  placeholder="e.g. 100" 
+                />
+                <p className="text-xs text-gray-500 mt-1">Enter the number of usages to add</p>
+              </div>
+              <div className="flex justify-end space-x-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setTopupModal(null)} 
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleTopup} 
+                  disabled={loading || !topupModal.amount || topupModal.amount <= 0}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Processing...' : 'Topup License'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -134,5 +134,52 @@ export async function licenseRoutes(fastify: FastifyInstance, options: FastifyPl
       reply.code(500).send({ error: error.message || 'Failed to cancel license' });
     }
   });
+
+  // Topup license
+  fastify.post('/:id/topup', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const body = request.body as { amount: number };
+      
+      logger.info(`POST /api/licenses/${id}/topup - Topping up license with ${body.amount} usages`);
+      
+      // Validate topup amount
+      if (!body.amount || body.amount <= 0 || !Number.isInteger(body.amount)) {
+        reply.code(400).send({ error: 'amount must be a positive integer', code: 'VALIDATION_ERROR' });
+        return;
+      }
+      
+      const result = await getService().topupLicense(id, body.amount);
+      
+      if (!result.success) {
+        const statusCode = result.statusCode || 400;
+        reply.code(statusCode).send({ 
+          error: result.error || 'Failed to topup license',
+          code: result.code
+        });
+        return;
+      }
+      
+      // Log topup operation
+      await getService().createLog({
+        type: 'TOPUP',
+        details: `Topped up license ${id} with ${body.amount} usages. New total: ${result.license?.totalUsageCount}, remaining: ${result.license?.currentUsageCount}`,
+        relatedId: id,
+      });
+      
+      logger.info(`✅ License topped up: ${id}, new currentUsageCount: ${result.license?.currentUsageCount}, totalUsageCount: ${result.license?.totalUsageCount}`);
+      reply.code(200).send({
+        success: true,
+        license: {
+          id: result.license!.id,
+          currentUsageCount: result.license!.currentUsageCount!,
+          totalUsageCount: result.license!.totalUsageCount!,
+        }
+      });
+    } catch (error: any) {
+      logger.error('❌ Topup error:', error);
+      reply.code(500).send({ error: error.message || 'Failed to topup license' });
+    }
+  });
 }
 

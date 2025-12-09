@@ -226,10 +226,25 @@ export class FirestoreService {
   }
 
   async createPlan(data: Omit<Plan, 'id'>): Promise<Plan> {
-    const docRef = await this.db.collection('plans').add(data);
+    const planData: Omit<Plan, 'id'> = {
+      productId: data.productId,
+      name: data.name,
+      features: data.features || [],
+      price: data.price || 0,
+    };
+
+    // Add fields based on plan type
+    if (data.defaultUsageCount !== undefined) {
+      planData.defaultUsageCount = data.defaultUsageCount;
+    } else {
+      planData.durationDays = data.durationDays;
+      planData.deviceLimit = data.deviceLimit;
+    }
+
+    const docRef = await this.db.collection('plans').add(planData);
     return {
       id: docRef.id,
-      ...data,
+      ...planData,
     };
   }
 
@@ -240,10 +255,26 @@ export class FirestoreService {
   async getPlan(id: string): Promise<Plan | null> {
     const doc = await this.db.collection('plans').doc(id).get();
     if (!doc.exists) return null;
+    const data = doc.data();
     return {
       id: doc.id,
-      ...doc.data(),
+      ...data,
     } as Plan;
+  }
+
+  // Helper methods for usage-based plans
+  isUsageBasedPlan(plan: Plan): boolean {
+    return plan.defaultUsageCount !== undefined;
+  }
+
+  initializeUsageTracking(plan: Plan): { currentUsageCount: number; totalUsageCount: number } | null {
+    if (this.isUsageBasedPlan(plan) && plan.defaultUsageCount !== undefined) {
+      return {
+        currentUsageCount: plan.defaultUsageCount,
+        totalUsageCount: plan.defaultUsageCount,
+      };
+    }
+    return null;
   }
 
   // Licenses
@@ -289,28 +320,47 @@ export class FirestoreService {
     } as License;
   }
 
-  async createLicense(data: Omit<License, 'id' | 'key' | 'status' | 'activations' | 'issuedAt' | 'expiresAt'>): Promise<License> {
+  async createLicense(data: Omit<License, 'id' | 'key' | 'status' | 'activations' | 'issuedAt' | 'expiresAt' | 'currentUsageCount' | 'totalUsageCount'>): Promise<License> {
     const plan = await this.getPlan(data.planId);
     if (!plan) throw new Error('Plan not found');
 
     const now = new Date();
-    const expires = new Date();
-    expires.setDate(now.getDate() + plan.durationDays);
-
-    const licenseData: Omit<License, 'id'> = {
+    const licenseData: any = {
       ...data,
       key: this.generateKey(),
       status: LicenseStatus.ACTIVE,
       activations: [],
       issuedAt: now.toISOString(),
-      expiresAt: expires.toISOString(),
     };
+
+    // Handle usage-based vs time-based plans
+    if (this.isUsageBasedPlan(plan)) {
+      // Usage-based plan: initialize usage tracking, set expiresAt far in future
+      const usageTracking = this.initializeUsageTracking(plan);
+      if (usageTracking) {
+        licenseData.currentUsageCount = usageTracking.currentUsageCount;
+        licenseData.totalUsageCount = usageTracking.totalUsageCount;
+      }
+      // Set expiresAt far in future (not used for expiration logic, but required field)
+      const farFuture = new Date();
+      farFuture.setFullYear(farFuture.getFullYear() + 100);
+      licenseData.expiresAt = farFuture.toISOString();
+    } else {
+      // Time-based plan: calculate expiresAt from durationDays, no usage tracking
+      if (plan.durationDays === undefined) {
+        throw new Error('Time-based plan must have durationDays');
+      }
+      const expires = new Date();
+      expires.setDate(now.getDate() + plan.durationDays);
+      licenseData.expiresAt = expires.toISOString();
+      // Do not set currentUsageCount or totalUsageCount for time-based plans
+    }
 
     const docRef = await this.db.collection('licenses').add(licenseData);
     return {
       id: docRef.id,
       ...licenseData,
-    };
+    } as License;
   }
 
   async renewLicense(id: string): Promise<void> {
@@ -323,6 +373,11 @@ export class FirestoreService {
 
       const plan = await this.getPlan(license.planId);
       if (!plan) throw new Error('Plan not found');
+
+      // Only renew time-based plans
+      if (plan.durationDays === undefined) {
+        throw new Error('Cannot renew usage-based plan. Use topup instead.');
+      }
 
       const currentExpiry = new Date(license.expiresAt);
       const now = new Date();
@@ -339,6 +394,193 @@ export class FirestoreService {
   async cancelLicense(id: string): Promise<void> {
     await this.db.collection('licenses').doc(id).update({
       status: LicenseStatus.CANCELLED,
+    });
+  }
+
+  async consumeUsage(key: string, productId: string, amount: number): Promise<{
+    success: boolean;
+    remaining?: number;
+    error?: string;
+    code?: string;
+    statusCode?: number;
+  }> {
+    return this.db.runTransaction(async (transaction) => {
+      // Find license by key
+      const licensesRef = this.db.collection('licenses');
+      const snapshot = await transaction.get(
+        licensesRef.where('key', '==', key).limit(1)
+      );
+      
+      if (snapshot.empty) {
+        return { 
+          success: false, 
+          error: 'License not found', 
+          code: 'LICENSE_NOT_FOUND',
+          statusCode: 404 
+        };
+      }
+      
+      const licenseDoc = snapshot.docs[0];
+      const licenseRef = licenseDoc.ref;
+      const license = licenseDoc.data() as License;
+      
+      // Validate product-id header matches license productId
+      if (license.productId !== productId) {
+        return { 
+          success: false, 
+          error: 'Product mismatch. The product-id header does not match the license product.', 
+          code: 'PRODUCT_MISMATCH',
+          statusCode: 400 
+        };
+      }
+      
+      // Validate license status
+      if (license.status !== LicenseStatus.ACTIVE) {
+        return { 
+          success: false, 
+          error: 'License is not active', 
+          code: 'LICENSE_INACTIVE',
+          statusCode: 409 
+        };
+      }
+      
+      // Check if license is usage-based
+      const isUsageBased = license.currentUsageCount !== undefined;
+      
+      if (!isUsageBased) {
+        // For time-based licenses, check expiration
+        const expiresAt = new Date(license.expiresAt);
+        if (new Date() > expiresAt) {
+          // Update status to expired
+          transaction.update(licenseRef, { status: LicenseStatus.EXPIRED });
+          return { 
+            success: false, 
+            error: 'License has expired', 
+            code: 'LICENSE_EXPIRED',
+            statusCode: 409 
+          };
+        }
+        return { 
+          success: false, 
+          error: 'License is not usage-based', 
+          code: 'NOT_USAGE_BASED',
+          statusCode: 400 
+        };
+      }
+      
+      // Validate usage-based expiration (currentUsageCount > 0)
+      // We know currentUsageCount exists because isUsageBased check passed
+      const currentUsage = license.currentUsageCount!;
+      if (currentUsage === 0) {
+        // Update status to expired
+        transaction.update(licenseRef, { status: LicenseStatus.EXPIRED });
+        return { 
+          success: false, 
+          error: 'License has no usages remaining', 
+          code: 'LICENSE_EXPIRED',
+          statusCode: 409 
+        };
+      }
+      
+      // Validate sufficient usage available
+      if (currentUsage < amount) {
+        return { 
+          success: false, 
+          error: `Insufficient usages. Available: ${currentUsage}, Requested: ${amount}`, 
+          code: 'INSUFFICIENT_USAGE',
+          statusCode: 400 
+        };
+      }
+      
+      // Consume usage atomically
+      const newCount = currentUsage - amount;
+      const updateData: any = {
+        currentUsageCount: newCount,
+      };
+      
+      // If usage exhausted, mark as expired
+      if (newCount === 0) {
+        updateData.status = LicenseStatus.EXPIRED;
+      }
+      
+      transaction.update(licenseRef, updateData);
+      
+      // Log consumption (outside transaction for performance)
+      // Note: This is done after transaction commits to avoid transaction timeout
+      this.createLog({
+        type: 'CONSUME',
+        details: `Consumed ${amount} usages from license ${key}, remaining: ${newCount}`,
+        relatedId: license.id,
+      }).catch(err => {
+        logger.error('Failed to log consumption:', err);
+      });
+      
+      return { 
+        success: true, 
+        remaining: newCount 
+      };
+    });
+  }
+
+  async topupLicense(id: string, amount: number): Promise<{
+    success: boolean;
+    license?: License;
+    error?: string;
+    code?: string;
+    statusCode?: number;
+  }> {
+    return this.db.runTransaction(async (transaction) => {
+      const licenseRef = this.db.collection('licenses').doc(id);
+      const licenseDoc = await transaction.get(licenseRef);
+      
+      if (!licenseDoc.exists) {
+        return { 
+          success: false, 
+          error: 'License not found', 
+          code: 'LICENSE_NOT_FOUND',
+          statusCode: 404 
+        };
+      }
+      
+      const license = licenseDoc.data() as License;
+      
+      // Validate license is usage-based
+      if (license.currentUsageCount === undefined || license.totalUsageCount === undefined) {
+        return { 
+          success: false, 
+          error: 'License is not usage-based. Only usage-based licenses can be topped up.', 
+          code: 'NOT_USAGE_BASED',
+          statusCode: 400 
+        };
+      }
+      
+      // Validate license status (must be ACTIVE)
+      if (license.status !== LicenseStatus.ACTIVE) {
+        return { 
+          success: false, 
+          error: 'Only ACTIVE licenses can be topped up', 
+          code: 'LICENSE_INACTIVE',
+          statusCode: 409 
+        };
+      }
+      
+      // Update usage counts atomically
+      const newCurrent = license.currentUsageCount + amount;
+      const newTotal = license.totalUsageCount + amount;
+      
+      transaction.update(licenseRef, {
+        currentUsageCount: newCurrent,
+        totalUsageCount: newTotal,
+      });
+      
+      return {
+        success: true,
+        license: {
+          ...license,
+          currentUsageCount: newCurrent,
+          totalUsageCount: newTotal,
+        }
+      };
     });
   }
 

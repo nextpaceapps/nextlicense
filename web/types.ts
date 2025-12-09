@@ -12,8 +12,9 @@ export type Plan = {
   id: string;
   productId: string;
   name: string;
-  durationDays: number;
-  deviceLimit: number;
+  defaultUsageCount?: number; // For usage-based plans
+  durationDays?: number; // For time-based plans
+  deviceLimit?: number; // For time-based plans
   features: string[]; // Comma separated feature codes
   price: number;
 };
@@ -40,12 +41,14 @@ export type License = {
   issuedAt: string;
   expiresAt: string;
   activations: Activation[];
+  currentUsageCount?: number; // For usage-based licenses
+  totalUsageCount?: number; // For usage-based licenses
 };
 
 export type LogEvent = {
   id: string;
   timestamp: string;
-  type: 'ISSUE' | 'VALIDATE' | 'RENEW' | 'CANCEL' | 'EXPIRE' | 'ERROR';
+  type: 'ISSUE' | 'VALIDATE' | 'RENEW' | 'CANCEL' | 'EXPIRE' | 'ERROR' | 'CONSUME' | 'TOPUP';
   details: string;
   relatedId?: string; // License ID or Product ID
 };

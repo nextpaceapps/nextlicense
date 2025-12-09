@@ -25,6 +25,7 @@ import { planRoutes } from './routes/plans';
 import { licenseRoutes } from './routes/licenses';
 import { logRoutes } from './routes/logs';
 import { validationRoutes } from './routes/validation';
+import { consumeRoutes } from './routes/consume';
 
 // Note: Firebase Admin will be initialized lazily on first API request
 // This ensures environment variables are available when needed
@@ -69,6 +70,9 @@ fastify.get('/health', async (request, reply) => {
 
 // Validation routes (Public)
 fastify.register(validationRoutes, { prefix: '/api/validate' });
+
+// Consumption routes (Public)
+fastify.register(consumeRoutes, { prefix: '/api/consume' });
 
 // Protected routes (Require Authentication)
 fastify.register(async (instance) => {
