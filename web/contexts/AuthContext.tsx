@@ -2,10 +2,12 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { UserProfile } from '../types';
 import { auth } from '../services/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { setDevLoginState } from '../services/api';
 
 interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
+  isDevLogin: boolean;
   loginDev: () => void;
   logout: () => void;
 }
@@ -27,6 +29,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDevLogin, setIsDevLogin] = useState(false);
 
   useEffect(() => {
     if (auth) {
@@ -39,8 +42,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               picture: firebaseUser.photoURL || undefined,
               role: 'ADMIN' // Default to Admin
           });
+          setIsDevLogin(false); // Reset dev login when Firebase user is present
+          setDevLoginState(false); // Update API client
         } else {
           setUser(null);
+          setIsDevLogin(false);
+          setDevLoginState(false); // Update API client
         }
         setIsLoading(false);
       });
@@ -52,6 +59,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loginDev = () => {
     // No more conditional check. Dev login should always work.
+    setIsDevLogin(true);
+    setDevLoginState(true); // Update API client dev login state
     setUser({
       email: 'dev@local.host',
       name: 'Dev Admin',
@@ -70,13 +79,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         setUser(null);
       }
+      setIsDevLogin(false);
+      setDevLoginState(false); // Update API client
     } catch (error) {
         console.error("Logout failed", error);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, loginDev, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, isDevLogin, loginDev, logout }}>
       {children}
     </AuthContext.Provider>
   );

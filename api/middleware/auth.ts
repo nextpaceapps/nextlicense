@@ -3,41 +3,71 @@ import { getAuth } from 'firebase-admin/auth';
 import { logger } from '../logger';
 import { initializeFirestore } from '../services/firestore';
 
-// Ensure Firebase Admin is initialized
-// This might be redundant if it's already initialized, but safe to call
-try {
-  initializeFirestore();
-} catch (e) {
-  // Ignore error if already initialized or will be initialized later
-}
+// Firebase Admin will be initialized lazily when needed
+// Don't initialize at module load time to ensure environment variables are loaded first
 
 export const authenticate = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
+    // Dev login bypass (development only)
+    const devLoginBypass = process.env.DEV_LOGIN_BYPASS === 'true';
+    const isDevLogin = request.headers['x-dev-login'] === 'true';
+    
+    if (devLoginBypass && isDevLogin && process.env.NODE_ENV !== 'production') {
+      // Allow request to proceed without token validation in development
+      logger.info('Dev login bypass enabled - skipping authentication');
+      return;
+    }
+
     const authHeader = request.headers.authorization;
     
     if (!authHeader) {
-      logger.warn('Authentication failed: No authorization header');
-      return reply.code(401).send({ error: 'No authorization header' });
+      logger.warn({
+        path: request.url,
+        method: request.method,
+      }, 'Authentication failed: No authorization header');
+      return reply.code(401).send({ error: 'Authentication failed' });
     }
 
     if (!authHeader.startsWith('Bearer ')) {
-      logger.warn('Authentication failed: Invalid token format');
-      return reply.code(401).send({ error: 'Invalid token format' });
+      logger.warn({
+        path: request.url,
+        method: request.method,
+      }, 'Authentication failed: Invalid token format');
+      return reply.code(401).send({ error: 'Authentication failed' });
     }
 
     const token = authHeader.split('Bearer ')[1];
     
     try {
+      // Ensure Firebase Admin is initialized before verifying token
+      // This is lazy initialization - only happens when needed, after env vars are loaded
+      try {
+        initializeFirestore(); // This initializes Firebase Admin as a side effect
+      } catch (initError) {
+        // Ignore if already initialized
+      }
+      
       const decodedToken = await getAuth().verifyIdToken(token);
       request.user = decodedToken;
     } catch (error: any) {
-      logger.error({ error }, 'Authentication failed: Invalid token');
-      return reply.code(401).send({ error: 'Invalid or expired token' });
+      // Generic error message for all authentication failures (per FR-004)
+      logger.error({ 
+        error, 
+        errorCode: error?.code,
+        path: request.url,
+        method: request.method,
+      }, 'Authentication failed: Token verification error');
+      return reply.code(401).send({ error: 'Authentication failed' });
     }
     
   } catch (error) {
-    logger.error({ error }, 'Authentication middleware error');
-    return reply.code(500).send({ error: 'Internal server error during authentication' });
+    // Handle Firebase Admin SDK initialization failures or other errors
+    logger.error({ 
+      error,
+      path: request.url,
+      method: request.method,
+    }, 'Authentication middleware error');
+    return reply.code(401).send({ error: 'Authentication failed' });
   }
 };
 
