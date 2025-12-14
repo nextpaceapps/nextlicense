@@ -15,7 +15,80 @@ function getService(): FirestoreService {
 
 export async function validationRoutes(fastify: FastifyInstance, options: FastifyPluginOptions) {
   // Validate license
-  fastify.post('/', async (request, reply) => {
+  fastify.post('/', {
+    schema: {
+      description: 'Validate a license key and register device activation',
+      tags: ['Validation'],
+      summary: 'Validate a license',
+      body: {
+        type: 'object',
+        required: ['key', 'deviceId'],
+        properties: {
+          key: { type: 'string', description: 'License key' },
+          deviceId: { type: 'string', description: 'Device identifier' },
+        },
+        examples: {
+          example1: {
+            value: {
+              key: 'LICENSE-KEY-12345',
+              deviceId: 'device-abc-123',
+            },
+          },
+        },
+      },
+      response: {
+        200: {
+          description: 'Validation result',
+          type: 'object',
+          properties: {
+            valid: { type: 'boolean' },
+            message: { type: 'string' },
+            license: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                status: { type: 'string', enum: ['ACTIVE', 'EXPIRED', 'CANCELLED'] },
+                productName: { type: 'string' },
+                planName: { type: 'string' },
+                expiresAt: { type: 'string', format: 'date-time' },
+                features: { type: 'array', items: { type: 'string' } },
+                daysRemaining: { type: 'integer' },
+              },
+            },
+          },
+          examples: {
+            valid: {
+              value: {
+                valid: true,
+                message: 'License Valid',
+                license: {
+                  status: 'ACTIVE',
+                  productName: 'My Product',
+                  planName: 'Premium Plan',
+                  expiresAt: '2025-12-31T23:59:59Z',
+                  features: ['feature1', 'feature2'],
+                  daysRemaining: 365,
+                },
+              },
+            },
+            invalid: {
+              value: {
+                valid: false,
+                message: 'Invalid License Key',
+              },
+            },
+          },
+        },
+        400: {
+          description: 'Bad request - missing required fields',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       const body = request.body as { key: string; deviceId: string };
       

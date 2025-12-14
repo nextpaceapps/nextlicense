@@ -14,7 +14,47 @@ function getService(): FirestoreService {
 
 export async function planRoutes(fastify: FastifyInstance, options: FastifyPluginOptions) {
   // Get all plans
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', {
+    schema: {
+      description: 'Retrieve all plans in the system',
+      tags: ['Plans'],
+      summary: 'List all plans',
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: {
+          description: 'List of plans',
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              productId: { type: 'string' },
+              name: { type: 'string' },
+              defaultUsageCount: { type: 'integer', nullable: true },
+              durationDays: { type: 'integer', nullable: true },
+              deviceLimit: { type: 'integer', nullable: true },
+              features: { type: 'array', items: { type: 'string' } },
+              price: { type: 'number' },
+            },
+          },
+        },
+        401: {
+          description: 'Authentication required',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          description: 'Internal server error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       logger.info('GET /api/plans - Fetching all plans');
       const plans = await getService().getAllPlans();
@@ -27,7 +67,65 @@ export async function planRoutes(fastify: FastifyInstance, options: FastifyPlugi
   });
 
   // Create plan
-  fastify.post('/', async (request, reply) => {
+  fastify.post('/', {
+    schema: {
+      description: 'Create a new plan (usage-based or time-based) for a product',
+      tags: ['Plans'],
+      summary: 'Create a new plan',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['productId', 'name'],
+        properties: {
+          productId: { type: 'string', description: 'Associated product ID' },
+          name: { type: 'string', description: 'Plan name' },
+          defaultUsageCount: { type: 'integer', description: 'For usage-based plans only', minimum: 1 },
+          durationDays: { type: 'integer', description: 'For time-based plans only', minimum: 1 },
+          deviceLimit: { type: 'integer', description: 'For time-based plans only', minimum: 0 },
+          features: { type: 'array', items: { type: 'string' }, description: 'Array of feature codes' },
+          price: { type: 'number', description: 'Plan price', minimum: 0 },
+        },
+      },
+      response: {
+        201: {
+          description: 'Plan created successfully',
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            productId: { type: 'string' },
+            name: { type: 'string' },
+            defaultUsageCount: { type: 'integer', nullable: true },
+            durationDays: { type: 'integer', nullable: true },
+            deviceLimit: { type: 'integer', nullable: true },
+            features: { type: 'array', items: { type: 'string' } },
+            price: { type: 'number' },
+          },
+        },
+        400: {
+          description: 'Bad request - validation error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+            code: { type: 'string', nullable: true },
+          },
+        },
+        401: {
+          description: 'Authentication required',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          description: 'Internal server error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       const body = request.body as {
         productId: string;
@@ -114,7 +212,58 @@ export async function planRoutes(fastify: FastifyInstance, options: FastifyPlugi
   });
 
   // Get plan by ID
-  fastify.get('/:id', async (request, reply) => {
+  fastify.get('/:id', {
+    schema: {
+      description: 'Retrieve a plan by ID',
+      tags: ['Plans'],
+      summary: 'Get plan by ID',
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Plan ID' },
+        },
+        required: ['id'],
+      },
+      response: {
+        200: {
+          description: 'Plan details',
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            productId: { type: 'string' },
+            name: { type: 'string' },
+            defaultUsageCount: { type: 'integer', nullable: true },
+            durationDays: { type: 'integer', nullable: true },
+            deviceLimit: { type: 'integer', nullable: true },
+            features: { type: 'array', items: { type: 'string' } },
+            price: { type: 'number' },
+          },
+        },
+        404: {
+          description: 'Plan not found',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        401: {
+          description: 'Authentication required',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          description: 'Internal server error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       logger.info(`GET /api/plans/${id} - Fetching plan`);
@@ -131,7 +280,41 @@ export async function planRoutes(fastify: FastifyInstance, options: FastifyPlugi
   });
 
   // Delete plan
-  fastify.delete('/:id', async (request, reply) => {
+  fastify.delete('/:id', {
+    schema: {
+      description: 'Delete a plan by ID',
+      tags: ['Plans'],
+      summary: 'Delete a plan',
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Plan ID' },
+        },
+        required: ['id'],
+      },
+      response: {
+        204: {
+          description: 'Plan deleted successfully',
+          type: 'null',
+        },
+        401: {
+          description: 'Authentication required',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          description: 'Internal server error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       logger.info(`DELETE /api/plans/${id} - Deleting plan`);

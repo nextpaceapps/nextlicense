@@ -15,7 +15,51 @@ function getService(): FirestoreService {
 
 export async function productRoutes(fastify: FastifyInstance, options: FastifyPluginOptions) {
   // Get all products
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', {
+    schema: {
+      description: 'Retrieve all products in the system',
+      tags: ['Products'],
+      summary: 'List all products',
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: {
+          description: 'List of products',
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              code: { type: 'string' },
+              description: { type: 'string', nullable: true },
+            },
+          },
+          example: [
+            {
+              id: 'prod123',
+              name: 'My Product',
+              code: 'PROD001',
+              description: 'Product description',
+            },
+          ],
+        },
+        401: {
+          description: 'Authentication required',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          description: 'Internal server error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       logger.info('GET /api/products - Fetching all products');
       const products = await getService().getAllProducts();
@@ -28,7 +72,76 @@ export async function productRoutes(fastify: FastifyInstance, options: FastifyPl
   });
 
   // Create product
-  fastify.post('/', async (request, reply) => {
+  fastify.post('/', {
+    schema: {
+      description: 'Create a new product with name, code, and optional description',
+      tags: ['Products'],
+      summary: 'Create a new product',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['name', 'code'],
+        properties: {
+          name: { type: 'string', description: 'Product name' },
+          code: { type: 'string', description: 'Product code (unique identifier)' },
+          description: { type: 'string', description: 'Product description', nullable: true },
+        },
+        examples: {
+          example1: {
+            value: {
+              name: 'My Product',
+              code: 'PROD001',
+              description: 'Product description',
+            },
+          },
+        },
+      },
+      response: {
+        201: {
+          description: 'Product created successfully',
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+            code: { type: 'string' },
+            description: { type: 'string', nullable: true },
+          },
+          example: {
+            id: 'prod123',
+            name: 'My Product',
+            code: 'PROD001',
+            description: 'Product description',
+          },
+        },
+        400: {
+          description: 'Bad request - missing required fields',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+          example: {
+            error: 'Name and code are required',
+          },
+        },
+        401: {
+          description: 'Authentication required',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          description: 'Internal server error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+            code: { type: 'string', nullable: true },
+            hint: { type: 'string', nullable: true },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       const body = request.body as { name: string; code: string; description?: string };
       logger.info({ name: body.name, code: body.code }, 'POST /api/products - Creating product');
@@ -66,7 +179,41 @@ export async function productRoutes(fastify: FastifyInstance, options: FastifyPl
   });
 
   // Delete product
-  fastify.delete('/:id', async (request, reply) => {
+  fastify.delete('/:id', {
+    schema: {
+      description: 'Delete a product by ID',
+      tags: ['Products'],
+      summary: 'Delete a product',
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Product ID' },
+        },
+        required: ['id'],
+      },
+      response: {
+        204: {
+          description: 'Product deleted successfully',
+          type: 'null',
+        },
+        401: {
+          description: 'Authentication required',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          description: 'Internal server error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       logger.info(`DELETE /api/products/${id} - Deleting product`);
