@@ -8,14 +8,37 @@ import { initializeFirestore } from '../services/firestore';
 
 export const authenticate = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    // Dev login bypass (development only)
+    // Dev login bypass (development only, localhost only)
     const devLoginBypass = process.env.DEV_LOGIN_BYPASS === 'true';
     const isDevLogin = request.headers['x-dev-login'] === 'true';
+    const isProduction = process.env.NODE_ENV === 'production';
     
-    if (devLoginBypass && isDevLogin && process.env.NODE_ENV !== 'production') {
-      // Allow request to proceed without token validation in development
+    // Check if request is from localhost
+    const origin = request.headers.origin || '';
+    const host = request.headers.host || '';
+    const isLocalhost = !isProduction && (
+      origin.includes('localhost') || 
+      origin.includes('127.0.0.1') ||
+      host.includes('localhost') ||
+      host.includes('127.0.0.1')
+    );
+    
+    if (devLoginBypass && isDevLogin && !isProduction && isLocalhost) {
+      // Allow request to proceed without token validation in development on localhost only
       logger.info('Dev login bypass enabled - skipping authentication');
       return;
+    }
+    
+    // Reject dev login attempts in production or from non-localhost
+    if (isDevLogin && (isProduction || !isLocalhost)) {
+      logger.warn({
+        isProduction,
+        isLocalhost,
+        origin,
+        host,
+        path: request.url,
+      }, 'Dev login attempt rejected - not available in production or from non-localhost');
+      return reply.code(401).send({ error: 'Authentication failed' });
     }
 
     const authHeader = request.headers.authorization;

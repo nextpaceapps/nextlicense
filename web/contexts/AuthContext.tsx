@@ -58,7 +58,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const loginDev = () => {
-    // No more conditional check. Dev login should always work.
+    // Dev login only available in development on localhost
+    const isProduction = import.meta.env.PROD;
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1' ||
+                        window.location.hostname === '';
+    
+    if (isProduction || !isLocalhost) {
+      console.warn('Dev login is only available in development on localhost');
+      return;
+    }
+    
     setIsDevLogin(true);
     setDevLoginState(true); // Update API client dev login state
     setUser({

@@ -7,6 +7,13 @@ import { useAuth } from '../contexts/AuthContext';
 export const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { loginDev } = useAuth();
+  
+  // Dev login only available in development on localhost
+  const isProduction = import.meta.env.PROD;
+  const isLocalhost = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1' ||
+                      window.location.hostname === '';
+  const isDevLoginAvailable = !isProduction && isLocalhost;
 
   const handleGoogleSignIn = async () => {
     if (!auth) {
@@ -87,13 +94,15 @@ export const Login: React.FC = () => {
                 Sign in with Google
             </button>
 
-            <button 
+            {isDevLoginAvailable && (
+              <button 
                 onClick={loginDev}
                 className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
+              >
                 <ShieldCheck className="w-4 h-4 mr-2" />
                 Dev Login
-            </button>
+              </button>
+            )}
           </div>
         </div>
         
