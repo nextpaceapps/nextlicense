@@ -15,7 +15,51 @@ function getService(): FirestoreService {
 
 export async function licenseRoutes(fastify: FastifyInstance, options: FastifyPluginOptions) {
   // Get all licenses
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', {
+    schema: {
+      description: 'Retrieve all licenses in the system',
+      tags: ['Licenses'],
+      summary: 'List all licenses',
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: {
+          description: 'List of licenses',
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              key: { type: 'string' },
+              productId: { type: 'string' },
+              planId: { type: 'string' },
+              userEmail: { type: 'string' },
+              status: { type: 'string', enum: ['ACTIVE', 'EXPIRED', 'CANCELLED'] },
+              issuedAt: { type: 'string', format: 'date-time' },
+              expiresAt: { type: 'string', format: 'date-time' },
+              activations: { type: 'array', items: { type: 'object' } },
+              currentUsageCount: { type: 'integer', nullable: true },
+              totalUsageCount: { type: 'integer', nullable: true },
+            },
+          },
+        },
+        401: {
+          description: 'Authentication required',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          description: 'Internal server error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+            code: { type: 'string', nullable: true },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       logger.info('GET /api/licenses - Fetching all licenses');
       const licenses = await getService().getAllLicenses();
@@ -36,7 +80,61 @@ export async function licenseRoutes(fastify: FastifyInstance, options: FastifyPl
   });
 
   // Get license by key
-  fastify.get('/key/:key', async (request, reply) => {
+  fastify.get('/key/:key', {
+    schema: {
+      description: 'Retrieve a license by license key',
+      tags: ['Licenses'],
+      summary: 'Get license by key',
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        properties: {
+          key: { type: 'string', description: 'License key' },
+        },
+        required: ['key'],
+      },
+      response: {
+        200: {
+          description: 'License details',
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            key: { type: 'string' },
+            productId: { type: 'string' },
+            planId: { type: 'string' },
+            userEmail: { type: 'string' },
+            status: { type: 'string', enum: ['ACTIVE', 'EXPIRED', 'CANCELLED'] },
+            issuedAt: { type: 'string', format: 'date-time' },
+            expiresAt: { type: 'string', format: 'date-time' },
+            activations: { type: 'array', items: { type: 'object' } },
+            currentUsageCount: { type: 'integer', nullable: true },
+            totalUsageCount: { type: 'integer', nullable: true },
+          },
+        },
+        404: {
+          description: 'License not found',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        401: {
+          description: 'Authentication required',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          description: 'Internal server error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       const { key } = request.params as { key: string };
       logger.info(`GET /api/licenses/key/${key} - Fetching license by key`);
@@ -55,7 +153,63 @@ export async function licenseRoutes(fastify: FastifyInstance, options: FastifyPl
   });
 
   // Create license
-  fastify.post('/', async (request, reply) => {
+  fastify.post('/', {
+    schema: {
+      description: 'Create a new license for a user with a specific product and plan',
+      tags: ['Licenses'],
+      summary: 'Create a new license',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['productId', 'planId', 'userEmail'],
+        properties: {
+          productId: { type: 'string', description: 'Product ID' },
+          planId: { type: 'string', description: 'Plan ID' },
+          userEmail: { type: 'string', format: 'email', description: 'User email address' },
+        },
+      },
+      response: {
+        201: {
+          description: 'License created successfully',
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            key: { type: 'string' },
+            productId: { type: 'string' },
+            planId: { type: 'string' },
+            userEmail: { type: 'string' },
+            status: { type: 'string', enum: ['ACTIVE', 'EXPIRED', 'CANCELLED'] },
+            issuedAt: { type: 'string', format: 'date-time' },
+            expiresAt: { type: 'string', format: 'date-time' },
+            activations: { type: 'array', items: { type: 'object' } },
+            currentUsageCount: { type: 'integer', nullable: true },
+            totalUsageCount: { type: 'integer', nullable: true },
+          },
+        },
+        400: {
+          description: 'Bad request - missing required fields',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        401: {
+          description: 'Authentication required',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          description: 'Internal server error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       const body = request.body as {
         productId: string;
@@ -92,7 +246,44 @@ export async function licenseRoutes(fastify: FastifyInstance, options: FastifyPl
   });
 
   // Renew license
-  fastify.post('/:id/renew', async (request, reply) => {
+  fastify.post('/:id/renew', {
+    schema: {
+      description: 'Renew an existing license, extending its expiration date',
+      tags: ['Licenses'],
+      summary: 'Renew a license',
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'License ID' },
+        },
+        required: ['id'],
+      },
+      response: {
+        200: {
+          description: 'License renewed successfully',
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+          },
+        },
+        401: {
+          description: 'Authentication required',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          description: 'Internal server error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       logger.info(`POST /api/licenses/${id}/renew - Renewing license`);
@@ -114,7 +305,44 @@ export async function licenseRoutes(fastify: FastifyInstance, options: FastifyPl
   });
 
   // Cancel license
-  fastify.post('/:id/cancel', async (request, reply) => {
+  fastify.post('/:id/cancel', {
+    schema: {
+      description: 'Cancel an existing license',
+      tags: ['Licenses'],
+      summary: 'Cancel a license',
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'License ID' },
+        },
+        required: ['id'],
+      },
+      response: {
+        200: {
+          description: 'License cancelled successfully',
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+          },
+        },
+        401: {
+          description: 'Authentication required',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          description: 'Internal server error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       logger.info(`POST /api/licenses/${id}/cancel - Cancelling license`);
@@ -136,7 +364,67 @@ export async function licenseRoutes(fastify: FastifyInstance, options: FastifyPl
   });
 
   // Topup license
-  fastify.post('/:id/topup', async (request, reply) => {
+  fastify.post('/:id/topup', {
+    schema: {
+      description: 'Add usage count to a usage-based license',
+      tags: ['Licenses'],
+      summary: 'Topup a license',
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'License ID' },
+        },
+        required: ['id'],
+      },
+      body: {
+        type: 'object',
+        required: ['amount'],
+        properties: {
+          amount: { type: 'integer', description: 'Amount of usage to add', minimum: 1 },
+        },
+      },
+      response: {
+        200: {
+          description: 'License topped up successfully',
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            license: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                currentUsageCount: { type: 'integer' },
+                totalUsageCount: { type: 'integer' },
+              },
+            },
+          },
+        },
+        400: {
+          description: 'Bad request - validation error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+            code: { type: 'string', nullable: true },
+          },
+        },
+        401: {
+          description: 'Authentication required',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          description: 'Internal server error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const body = request.body as { amount: number };
@@ -152,7 +440,7 @@ export async function licenseRoutes(fastify: FastifyInstance, options: FastifyPl
       const result = await getService().topupLicense(id, body.amount);
       
       if (!result.success) {
-        const statusCode = result.statusCode || 400;
+        const statusCode = (result.statusCode || 400) as 400 | 401 | 500;
         reply.code(statusCode).send({ 
           error: result.error || 'Failed to topup license',
           code: result.code

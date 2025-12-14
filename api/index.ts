@@ -18,6 +18,8 @@ if (process.env.NODE_ENV !== 'production') {
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import fastifySwagger from '@fastify/swagger';
+import fastifySwaggerUi from '@fastify/swagger-ui';
 import { logger } from './logger';
 import { authenticate } from './middleware/auth';
 import { productRoutes } from './routes/products';
@@ -63,8 +65,69 @@ fastify.register(cors, {
   credentials: true,
 });
 
+// Register @fastify/swagger first (generates OpenAPI spec)
+fastify.register(fastifySwagger, {
+  openapi: {
+    info: {
+      title: 'License API',
+      description: 'Backend API for the License Management System',
+      version: '1.0.0',
+    },
+    servers: [
+      {
+        url: `http://localhost:${process.env.PORT || 3001}`,
+        description: 'Local development server',
+      },
+    ],
+    tags: [
+      { name: 'Products', description: 'Product management endpoints' },
+      { name: 'Plans', description: 'Plan management endpoints' },
+      { name: 'Licenses', description: 'License management endpoints' },
+      { name: 'Validation', description: 'License validation endpoints (public)' },
+      { name: 'Consumption', description: 'Usage consumption endpoints (public)' },
+      { name: 'Logs', description: 'Event log endpoints' },
+      { name: 'Health', description: 'Health check endpoint (public)' },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Firebase ID token authentication',
+        },
+      },
+    },
+  },
+});
+
+// Register @fastify/swagger-ui second (serves UI)
+fastify.register(fastifySwaggerUi, {
+  routePrefix: '/docs',
+  uiConfig: {
+    docExpansion: 'list',
+    deepLinking: true,
+  },
+});
+
 // Health check (Public)
-fastify.get('/health', async (request, reply) => {
+fastify.get('/health', {
+  schema: {
+    description: 'Health check endpoint to verify server status',
+    tags: ['Health'],
+    summary: 'Health check',
+    response: {
+      200: {
+        description: 'Server is healthy',
+        type: 'object',
+        properties: {
+          status: { type: 'string', example: 'ok' },
+          timestamp: { type: 'string', format: 'date-time' },
+        },
+      },
+    },
+  },
+}, async (request, reply) => {
   return { status: 'ok', timestamp: new Date().toISOString() };
 });
 

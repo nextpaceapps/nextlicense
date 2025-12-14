@@ -14,7 +14,54 @@ function getService(): FirestoreService {
 
 export async function consumeRoutes(fastify: FastifyInstance, options: FastifyPluginOptions) {
   // Consume usage from license (Public endpoint)
-  fastify.post('/', async (request, reply) => {
+  fastify.post('/', {
+    schema: {
+      description: 'Consume a specified amount of usage from a usage-based license',
+      tags: ['Consumption'],
+      summary: 'Consume usage from license',
+      headers: {
+        type: 'object',
+        required: ['product-id'],
+        properties: {
+          'product-id': { type: 'string', description: 'Product ID for validation' },
+        },
+      },
+      body: {
+        type: 'object',
+        required: ['key', 'amount'],
+        properties: {
+          key: { type: 'string', description: 'License key' },
+          amount: { type: 'integer', description: 'Amount to consume', minimum: 1 },
+        },
+      },
+      response: {
+        200: {
+          description: 'Usage consumed successfully',
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            remaining: { type: 'integer', description: 'Remaining usage count' },
+            message: { type: 'string' },
+          },
+        },
+        400: {
+          description: 'Bad request - validation error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+            code: { type: 'string', nullable: true },
+          },
+        },
+        500: {
+          description: 'Internal server error',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     try {
       const body = request.body as { key: string; amount: number };
       const productId = request.headers['product-id'] as string;
@@ -42,7 +89,7 @@ export async function consumeRoutes(fastify: FastifyInstance, options: FastifyPl
       const result = await getService().consumeUsage(body.key, productId, body.amount);
       
       if (!result.success) {
-        const statusCode = result.statusCode || 400;
+        const statusCode = (result.statusCode || 400) as 400 | 500;
         reply.code(statusCode).send({ 
           error: result.error || 'Failed to consume usage',
           code: result.code
