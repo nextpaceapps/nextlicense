@@ -79,28 +79,28 @@
 
 ### Implementation for User Story 2
 
-- [ ] T028 [US2] Add request body schema to POST /api/products route (name, code, description) in api/routes/products.ts
-- [ ] T029 [US2] Add response schemas (200, 201, 400, 401, 500) to POST /api/products route in api/routes/products.ts
-- [ ] T030 [US2] Add response schema (200 array) to GET /api/products route in api/routes/products.ts
-- [ ] T031 [US2] Add path parameter schema (id) to DELETE /api/products/:id route in api/routes/products.ts
-- [ ] T032 [P] [US2] Add request body schema to POST /api/plans route (productId, name, defaultUsageCount/durationDays/deviceLimit, features, price) in api/routes/plans.ts
-- [ ] T033 [P] [US2] Add response schemas to POST /api/plans route in api/routes/plans.ts
-- [ ] T034 [P] [US2] Add path parameter schema (id) to GET /api/plans/:id route in api/routes/plans.ts
-- [ ] T035 [P] [US2] Add response schemas to GET /api/plans/:id route in api/routes/plans.ts
-- [ ] T036 [P] [US2] Add request body schema to POST /api/licenses route (productId, planId, userEmail) in api/routes/licenses.ts
-- [ ] T037 [P] [US2] Add response schemas to POST /api/licenses route in api/routes/licenses.ts
-- [ ] T038 [P] [US2] Add path parameter schema (key) to GET /api/licenses/key/:key route in api/routes/licenses.ts
-- [ ] T039 [P] [US2] Add request body schema to POST /api/licenses/:id/topup route (amount) in api/routes/licenses.ts
-- [ ] T040 [P] [US2] Add response schemas to POST /api/licenses/:id/topup route in api/routes/licenses.ts
-- [ ] T041 [P] [US2] Add request body schema to POST /api/validate route (key, deviceId) in api/routes/validation.ts
-- [ ] T042 [P] [US2] Add response schemas to POST /api/validate route in api/routes/validation.ts
-- [ ] T043 [P] [US2] Add request body schema to POST /api/consume route (key, amount) in api/routes/consume.ts
-- [ ] T044 [P] [US2] Add header parameter schema (product-id) to POST /api/consume route in api/routes/consume.ts
-- [ ] T045 [P] [US2] Add response schemas to POST /api/consume route in api/routes/consume.ts
-- [ ] T046 [P] [US2] Add query parameter schema (limit) to GET /api/logs route in api/routes/logs.ts
-- [ ] T047 [P] [US2] Add response schemas to GET /api/logs route in api/routes/logs.ts
-- [ ] T048 [US2] Add example request payloads to all POST endpoints that accept request bodies (products, plans, licenses, validate, consume, topup) in respective route files
-- [ ] T049 [US2] Add example response payloads to all endpoints in respective route files
+- [x] T028 [US2] Add request body schema to POST /api/products route (name, code, description) in api/routes/products.ts
+- [x] T029 [US2] Add response schemas (200, 201, 400, 401, 500) to POST /api/products route in api/routes/products.ts
+- [x] T030 [US2] Add response schema (200 array) to GET /api/products route in api/routes/products.ts
+- [x] T031 [US2] Add path parameter schema (id) to DELETE /api/products/:id route in api/routes/products.ts
+- [x] T032 [P] [US2] Add request body schema to POST /api/plans route (productId, name, defaultUsageCount/durationDays/deviceLimit, features, price) in api/routes/plans.ts
+- [x] T033 [P] [US2] Add response schemas to POST /api/plans route in api/routes/plans.ts
+- [x] T034 [P] [US2] Add path parameter schema (id) to GET /api/plans/:id route in api/routes/plans.ts
+- [x] T035 [P] [US2] Add response schemas to GET /api/plans/:id route in api/routes/plans.ts
+- [x] T036 [P] [US2] Add request body schema to POST /api/licenses route (productId, planId, userEmail) in api/routes/licenses.ts
+- [x] T037 [P] [US2] Add response schemas to POST /api/licenses route in api/routes/licenses.ts
+- [x] T038 [P] [US2] Add path parameter schema (key) to GET /api/licenses/key/:key route in api/routes/licenses.ts
+- [x] T039 [P] [US2] Add request body schema to POST /api/licenses/:id/topup route (amount) in api/routes/licenses.ts
+- [x] T040 [P] [US2] Add response schemas to POST /api/licenses/:id/topup route in api/routes/licenses.ts
+- [x] T041 [P] [US2] Add request body schema to POST /api/validate route (key, deviceId) in api/routes/validation.ts
+- [x] T042 [P] [US2] Add response schemas to POST /api/validate route in api/routes/validation.ts
+- [x] T043 [P] [US2] Add request body schema to POST /api/consume route (key, amount) in api/routes/consume.ts
+- [x] T044 [P] [US2] Add header parameter schema (product-id) to POST /api/consume route in api/routes/consume.ts
+- [x] T045 [P] [US2] Add response schemas to POST /api/consume route in api/routes/consume.ts
+- [x] T046 [P] [US2] Add query parameter schema (limit) to GET /api/logs route in api/routes/logs.ts
+- [x] T047 [P] [US2] Add response schemas to GET /api/logs route in api/routes/logs.ts
+- [x] T048 [US2] Add example request payloads to all POST endpoints that accept request bodies (products, plans, licenses, validate, consume, topup) in respective route files
+- [x] T049 [US2] Add example response payloads to all endpoints in respective route files
 - [ ] T050 [US2] Verify request/response schemas display correctly in documentation (manual validation)
 
 **Checkpoint**: At this point, User Story 2 should be fully functional. All endpoints have complete request/response schemas with examples.
@@ -115,9 +115,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T051 [US3] Add security requirement (bearerAuth) to all protected endpoint schemas (products, plans, licenses, logs) in respective route files
-- [ ] T052 [US3] Verify public endpoints (health, validate, consume) do NOT have security requirement in respective route files
-- [ ] T053 [US3] Add authentication documentation description to OpenAPI info section explaining Bearer token format in api/index.ts
+- [x] T051 [US3] Add security requirement (bearerAuth) to all protected endpoint schemas (products, plans, licenses, logs) in respective route files
+- [x] T052 [US3] Verify public endpoints (health, validate, consume) do NOT have security requirement in respective route files
+- [x] T053 [US3] Add authentication documentation description to OpenAPI info section explaining Bearer token format in api/index.ts
 - [ ] T054 [US3] Verify Swagger UI displays lock icon on protected endpoints (manual validation)
 - [ ] T055 [US3] Verify Swagger UI shows "Authorize" button for Bearer token entry (manual validation)
 - [ ] T056 [US3] Verify public endpoints show no lock icon in documentation (manual validation)
@@ -134,7 +134,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T057 [US4] Configure Swagger UI to enable interactive testing in api/index.ts (uiConfig options)
+- [x] T057 [US4] Configure Swagger UI to enable interactive testing in api/index.ts (uiConfig options)
 - [ ] T058 [US4] Verify Swagger UI "Try it out" button is available for all endpoints (manual validation)
 - [ ] T059 [US4] Test interactive request for GET /api/products endpoint with Bearer token (manual validation)
 - [ ] T060 [US4] Test interactive request for POST /api/products endpoint with request body (manual validation)
@@ -156,9 +156,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T066 [US5] Add route to serve OpenAPI JSON at /docs/openapi.json in api/index.ts
-- [ ] T067 [P] [US5] Install js-yaml package for YAML export in api/package.json
-- [ ] T068 [US5] Add route to serve OpenAPI YAML at /docs/openapi.yaml in api/index.ts
+- [x] T066 [US5] Add route to serve OpenAPI JSON at /docs/openapi.json in api/index.ts
+- [x] T067 [P] [US5] Install js-yaml package for YAML export in api/package.json
+- [x] T068 [US5] Add route to serve OpenAPI YAML at /docs/openapi.yaml in api/index.ts
 - [ ] T069 [US5] Verify /docs/openapi.json returns valid OpenAPI 3.0 JSON (manual validation)
 - [ ] T070 [US5] Verify /docs/openapi.yaml returns valid OpenAPI 3.0 YAML (manual validation)
 - [ ] T071 [US5] Verify documentation URL is shareable (e.g., http://localhost:3001/docs) (manual validation)
@@ -174,13 +174,13 @@
 
 **Purpose**: Final improvements and validation
 
-- [ ] T075 [P] Verify all endpoints have complete schemas (request, response, parameters) in all route files
-- [ ] T076 [P] Add detailed descriptions to all endpoint schemas for better clarity in all route files
+- [x] T075 [P] Verify all endpoints have complete schemas (request, response, parameters) in all route files
+- [x] T076 [P] Add detailed descriptions to all endpoint schemas for better clarity in all route files
 - [ ] T077 Verify documentation load time is under 3 seconds (SC-010) (manual validation)
 - [ ] T078 Verify 100% of API endpoints are documented (SC-003) (manual validation)
 - [ ] T079 Verify authentication requirements are clearly indicated for 100% of endpoints (SC-008) (manual validation)
 - [ ] T080 Run quickstart.md validation steps to ensure implementation matches guide
-- [ ] T081 Update API README.md with documentation URL and usage instructions in api/README.md
+- [x] T081 Update API README.md with documentation URL and usage instructions in api/README.md
 
 ---
 

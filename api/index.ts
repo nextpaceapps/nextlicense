@@ -20,6 +20,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
+import yaml from 'js-yaml';
 import { logger } from './logger';
 import { authenticate } from './middleware/auth';
 import { productRoutes } from './routes/products';
@@ -108,6 +109,17 @@ fastify.register(fastifySwaggerUi, {
     docExpansion: 'list',
     deepLinking: true,
   },
+});
+
+// Export routes for OpenAPI JSON and YAML
+fastify.get('/docs/openapi.json', async (request, reply) => {
+  return fastify.swagger();
+});
+
+fastify.get('/docs/openapi.yaml', async (request, reply) => {
+  const spec = fastify.swagger();
+  reply.type('text/yaml');
+  return yaml.dump(spec);
 });
 
 // Health check (Public)

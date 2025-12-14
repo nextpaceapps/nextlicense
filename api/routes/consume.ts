@@ -33,6 +33,14 @@ export async function consumeRoutes(fastify: FastifyInstance, options: FastifyPl
           key: { type: 'string', description: 'License key' },
           amount: { type: 'integer', description: 'Amount to consume', minimum: 1 },
         },
+        examples: {
+          example1: {
+            value: {
+              key: 'LICENSE-KEY-12345',
+              amount: 10,
+            },
+          },
+        },
       },
       response: {
         200: {
@@ -43,6 +51,11 @@ export async function consumeRoutes(fastify: FastifyInstance, options: FastifyPl
             remaining: { type: 'integer', description: 'Remaining usage count' },
             message: { type: 'string' },
           },
+          example: {
+            success: true,
+            remaining: 90,
+            message: 'Consumed 10 usages successfully',
+          },
         },
         400: {
           description: 'Bad request - validation error',
@@ -50,6 +63,10 @@ export async function consumeRoutes(fastify: FastifyInstance, options: FastifyPl
           properties: {
             error: { type: 'string' },
             code: { type: 'string', nullable: true },
+          },
+          example: {
+            error: 'product-id header is required',
+            code: 'VALIDATION_ERROR',
           },
         },
         500: {

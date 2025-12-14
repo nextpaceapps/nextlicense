@@ -27,6 +27,14 @@ export async function validationRoutes(fastify: FastifyInstance, options: Fastif
           key: { type: 'string', description: 'License key' },
           deviceId: { type: 'string', description: 'Device identifier' },
         },
+        examples: {
+          example1: {
+            value: {
+              key: 'LICENSE-KEY-12345',
+              deviceId: 'device-abc-123',
+            },
+          },
+        },
       },
       response: {
         200: {
@@ -45,6 +53,28 @@ export async function validationRoutes(fastify: FastifyInstance, options: Fastif
                 expiresAt: { type: 'string', format: 'date-time' },
                 features: { type: 'array', items: { type: 'string' } },
                 daysRemaining: { type: 'integer' },
+              },
+            },
+          },
+          examples: {
+            valid: {
+              value: {
+                valid: true,
+                message: 'License Valid',
+                license: {
+                  status: 'ACTIVE',
+                  productName: 'My Product',
+                  planName: 'Premium Plan',
+                  expiresAt: '2025-12-31T23:59:59Z',
+                  features: ['feature1', 'feature2'],
+                  daysRemaining: 365,
+                },
+              },
+            },
+            invalid: {
+              value: {
+                valid: false,
+                message: 'Invalid License Key',
               },
             },
           },

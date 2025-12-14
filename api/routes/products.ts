@@ -34,6 +34,14 @@ export async function productRoutes(fastify: FastifyInstance, options: FastifyPl
               description: { type: 'string', nullable: true },
             },
           },
+          example: [
+            {
+              id: 'prod123',
+              name: 'My Product',
+              code: 'PROD001',
+              description: 'Product description',
+            },
+          ],
         },
         401: {
           description: 'Authentication required',
@@ -78,6 +86,15 @@ export async function productRoutes(fastify: FastifyInstance, options: FastifyPl
           code: { type: 'string', description: 'Product code (unique identifier)' },
           description: { type: 'string', description: 'Product description', nullable: true },
         },
+        examples: {
+          example1: {
+            value: {
+              name: 'My Product',
+              code: 'PROD001',
+              description: 'Product description',
+            },
+          },
+        },
       },
       response: {
         201: {
@@ -89,12 +106,21 @@ export async function productRoutes(fastify: FastifyInstance, options: FastifyPl
             code: { type: 'string' },
             description: { type: 'string', nullable: true },
           },
+          example: {
+            id: 'prod123',
+            name: 'My Product',
+            code: 'PROD001',
+            description: 'Product description',
+          },
         },
         400: {
           description: 'Bad request - missing required fields',
           type: 'object',
           properties: {
             error: { type: 'string' },
+          },
+          example: {
+            error: 'Name and code are required',
           },
         },
         401: {

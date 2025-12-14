@@ -110,6 +110,26 @@ license-api/
 └── types.ts        # TypeScript type definitions (sync with license-ui)
 ```
 
+## API Documentation
+
+Interactive API documentation is available at `/docs` when the server is running. The documentation includes:
+
+- Complete endpoint listings with descriptions
+- Request/response schemas with examples
+- Interactive testing capabilities
+- Authentication requirements
+- Export options (OpenAPI JSON and YAML)
+
+**Access Documentation**:
+- Local development: `http://localhost:3001/docs`
+- Production: `https://your-api-url/docs`
+
+**Export Documentation**:
+- OpenAPI JSON: `/docs/openapi.json`
+- OpenAPI YAML: `/docs/openapi.yaml`
+
+The documentation is automatically generated from route schemas and stays synchronized with code changes.
+
 ## API Endpoints
 
 - `GET /health` - Health check (public)
@@ -125,6 +145,8 @@ license-api/
 - `POST /api/licenses` - Create license (authenticated)
 - `POST /api/licenses/:id/renew` - Renew license (authenticated)
 - `POST /api/licenses/:id/cancel` - Cancel license (authenticated)
+- `POST /api/licenses/:id/topup` - Topup usage-based license (authenticated)
+- `POST /api/consume` - Consume usage from license (public, requires product-id header)
 - `GET /api/logs` - List logs (authenticated)
 
 All authenticated endpoints require a Firebase Auth token in the `Authorization: Bearer <token>` header.
