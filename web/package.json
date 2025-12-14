@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:production": "./scripts/build-production.sh",
     "preview": "vite preview"
   },
   "dependencies": {
