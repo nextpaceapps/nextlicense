@@ -53,14 +53,25 @@ fastify.register(cors, {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return cb(null, true);
     
-    const allowedOrigins = process.env.CORS_ORIGIN 
-      ? process.env.CORS_ORIGIN.split(',')
-      : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173', 'https://license-513ef.web.app', 'https://license-513ef.firebaseapp.com', 'https://license.nextpace.dev'];
+    // Public endpoints allow all origins (validate, consume, health)
+    // Protected endpoints require authentication anyway, so CORS is less critical
+    // Allow all origins for public API access as per spec requirement
+    const allowAllOrigins = process.env.CORS_ALLOW_ALL === 'true' || process.env.CORS_ALLOW_ALL === undefined;
     
-    if (allowedOrigins.includes(origin)) {
+    if (allowAllOrigins) {
+      // Allow all origins for public endpoints
       cb(null, true);
     } else {
-      cb(new Error('Not allowed by CORS'), false);
+      // Use restricted origins if explicitly configured
+      const allowedOrigins = process.env.CORS_ORIGIN 
+        ? process.env.CORS_ORIGIN.split(',')
+        : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173', 'https://license-513ef.web.app', 'https://license-513ef.firebaseapp.com', 'https://license.nextpace.dev'];
+      
+      if (allowedOrigins.includes(origin)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Not allowed by CORS'), false);
+      }
     }
   },
   credentials: true,

@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { FirestoreService, getFirestoreInstance } from '../services/firestore';
 import { logger } from '../logger';
+import { rateLimitMiddleware } from '../middleware/rateLimit';
 
 let firestoreService: FirestoreService | null = null;
 
@@ -13,6 +14,9 @@ function getService(): FirestoreService {
 }
 
 export async function consumeRoutes(fastify: FastifyInstance, options: FastifyPluginOptions) {
+  // Add rate limiting hook
+  fastify.addHook('preHandler', rateLimitMiddleware);
+
   // Consume usage from license (Public endpoint)
   fastify.post('/', {
     schema: {
@@ -67,6 +71,15 @@ export async function consumeRoutes(fastify: FastifyInstance, options: FastifyPl
           example: {
             error: 'product-id header is required',
             code: 'VALIDATION_ERROR',
+          },
+        },
+        429: {
+          description: 'Rate limit exceeded',
+          type: 'object',
+          properties: {
+            error: { type: 'string', example: 'Rate limit exceeded' },
+            code: { type: 'string', example: 'RATE_LIMIT_EXCEEDED' },
+            retryAfter: { type: 'number', description: 'Seconds until rate limit resets' },
           },
         },
         500: {
