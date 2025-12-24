@@ -37,14 +37,14 @@ export async function consumeRoutes(fastify: FastifyInstance, options: FastifyPl
           key: { type: 'string', description: 'License key' },
           amount: { type: 'integer', description: 'Amount to consume', minimum: 1 },
         },
-        examples: {
-          example1: {
+        examples: [
+          {
             value: {
               key: 'LICENSE-KEY-12345',
               amount: 10,
             },
           },
-        },
+        ],
       },
       response: {
         200: {

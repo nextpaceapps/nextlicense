@@ -86,15 +86,15 @@ export async function productRoutes(fastify: FastifyInstance, options: FastifyPl
           code: { type: 'string', description: 'Product code (unique identifier)' },
           description: { type: 'string', description: 'Product description', nullable: true },
         },
-        examples: {
-          example1: {
+        examples: [
+          {
             value: {
               name: 'My Product',
               code: 'PROD001',
               description: 'Product description',
             },
           },
-        },
+        ],
       },
       response: {
         201: {

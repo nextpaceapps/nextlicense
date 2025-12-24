@@ -31,14 +31,14 @@ export async function validationRoutes(fastify: FastifyInstance, options: Fastif
           key: { type: 'string', description: 'License key' },
           deviceId: { type: 'string', description: 'Device identifier' },
         },
-        examples: {
-          example1: {
+        examples: [
+          {
             value: {
               key: 'LICENSE-KEY-12345',
               deviceId: 'device-abc-123',
             },
           },
-        },
+        ],
       },
       response: {
         200: {
@@ -60,8 +60,8 @@ export async function validationRoutes(fastify: FastifyInstance, options: Fastif
               },
             },
           },
-          examples: {
-            valid: {
+          examples: [
+            {
               value: {
                 valid: true,
                 message: 'License Valid',
@@ -75,13 +75,13 @@ export async function validationRoutes(fastify: FastifyInstance, options: Fastif
                 },
               },
             },
-            invalid: {
+            {
               value: {
                 valid: false,
                 message: 'Invalid License Key',
               },
             },
-          },
+          ],
         },
         400: {
           description: 'Bad request - missing required fields',
