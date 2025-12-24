@@ -90,8 +90,12 @@ Configured in `apphosting.yaml`:
 For local development (`.env.local`):
 - `FIREBASE_PROJECT_ID` - Firebase project ID (required)
 - `GOOGLE_APPLICATION_CREDENTIALS` - Path to service account JSON file (required for local dev, not needed in Cloud Run)
-- `CORS_ORIGIN` - Allowed CORS origins (comma-separated, optional)
+- `CORS_ALLOW_ALL` - Allow all origins for CORS (default: true, set to 'false' to restrict)
+- `CORS_ORIGIN` - Allowed CORS origins (comma-separated, used when CORS_ALLOW_ALL=false)
 - `PORT` - Server port (default: 3001, optional)
+- `RATE_LIMIT_MAX_REQUESTS` - Maximum requests per time window (default: 100)
+- `RATE_LIMIT_WINDOW_MS` - Time window duration in milliseconds (default: 60000 = 1 minute)
+- `RATE_LIMIT_CLEANUP_INTERVAL_MS` - Cleanup interval for expired entries in milliseconds (default: 300000 = 5 minutes)
 
 **Important:** The service account file (`*-firebase-adminsdk-*.json`) must exist in the repository root. It is git-ignored for security. Copy it from your Firebase project or download it from Firebase Console → Project Settings → Service Accounts.
 
@@ -150,4 +154,55 @@ The documentation is automatically generated from route schemas and stays synchr
 - `GET /api/logs` - List logs (authenticated)
 
 All authenticated endpoints require a Firebase Auth token in the `Authorization: Bearer <token>` header.
+
+## CORS Configuration
+
+Public endpoints (`/api/validate`, `/api/consume`, `/health`) allow requests from any origin by default to enable external access. This is required for browser extensions and third-party integrations.
+
+**Configuration**:
+- `CORS_ALLOW_ALL` (default: true): Allow all origins for public endpoints
+- `CORS_ORIGIN`: Comma-separated list of allowed origins (used when `CORS_ALLOW_ALL=false`)
+
+**Security Note**: Protected endpoints require authentication, so CORS restrictions are less critical. The API relies on authentication tokens rather than origin restrictions for security.
+
+## Rate Limiting
+
+Public endpoints (`/api/validate` and `/api/consume`) are protected by rate limiting to prevent abuse:
+
+- **Limit**: 100 requests per minute per client
+- **Client Identification**: Combination of IP address and license key
+- **Algorithm**: Fixed window (1-minute windows)
+- **Response**: HTTP 429 (Too Many Requests) with `Retry-After` header when limit exceeded
+- **Storage**: In-memory (per server instance, not shared across instances)
+
+### Rate Limit Configuration
+
+Rate limiting is configurable via environment variables:
+
+- `RATE_LIMIT_MAX_REQUESTS` (default: 100): Maximum requests allowed per time window
+- `RATE_LIMIT_WINDOW_MS` (default: 60000): Time window duration in milliseconds
+- `RATE_LIMIT_CLEANUP_INTERVAL_MS` (default: 300000): Interval for cleaning up expired entries
+
+If configuration is missing or invalid, safe defaults are used and a warning is logged.
+
+### Rate Limit Response
+
+When rate limit is exceeded, the API returns:
+
+```json
+{
+  "error": "Rate limit exceeded",
+  "code": "RATE_LIMIT_EXCEEDED",
+  "retryAfter": 30
+}
+```
+
+With HTTP status `429` and `Retry-After` header indicating seconds until the rate limit resets.
+
+### Notes
+
+- Rate limits are applied per client (IP + License Key combination)
+- Different clients have independent rate limits
+- Rate limits reset on server restart
+- Rate limit violations are logged for monitoring
 
