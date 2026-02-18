@@ -1,0 +1,44 @@
+﻿name: Student Task
+about: Internship task for students in NextLicense
+title: "[Student Task] Day XX - "
+labels: [student-task]
+body:
+  - type: textarea
+    id: product_context
+    attributes:
+      label: Product Context
+      description: Why this task matters for NextLicense.
+    validations:
+      required: true
+  - type: textarea
+    id: learning_goal
+    attributes:
+      label: Learning Goal
+      description: What should the student learn by completing this task.
+    validations:
+      required: true
+  - type: dropdown
+    id: sdlc_stage
+    attributes:
+      label: SDLC Stage
+      options:
+        - Analysis
+        - Design
+        - Implementation
+        - Testing
+        - Review
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Checklist with measurable outcomes.
+    validations:
+      required: true
